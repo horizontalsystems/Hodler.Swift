@@ -89,6 +89,8 @@ extension HodlerPlugin: IPlugin {
         }
     }
 
+    // Changes a recipient address of `mutableTransaction` to a P2SH address and adds a hint about time-lock script
+    // to pluginData, that's later added to the transaction in the form of OP_RETURN output.
     public func processOutputs(mutableTransaction: MutableTransaction, pluginData: IPluginData, skipChecks: Bool = false) throws {
         guard let hodlerData = pluginData as? HodlerData else {
             throw HodlerPluginError.invalidData
@@ -116,6 +118,8 @@ extension HodlerPlugin: IPlugin {
         mutableTransaction.add(pluginData: OpCode.push(hodlerData.lockTimeInterval.valueInTwoBytes) + OpCode.push(recipientAddress.keyHash), pluginId: id)
     }
 
+    // Detects a time-locked output by parsing a hint in the transaction's OP_RETURN data
+    // and matching it with the user's public keys
     public func processTransactionWithNullData(transaction: FullTransaction, nullDataChunks: inout IndexingIterator<[Chunk]>) throws {
         guard let lockTimeIntervalData = nullDataChunks.next()?.data, let publicKeyHash = nullDataChunks.next()?.data,
               let lockTimeInterval = lockTimeIntervalFrom(data: lockTimeIntervalData) else {
@@ -153,6 +157,8 @@ extension HodlerPlugin: IPlugin {
         Int((try lockTimeIntervalFrom(output: output)).sequenceNumber)
     }
 
+    // Parses a pluginData string to an instance of HodlerOutputData
+    // and evalutes approximate time when this output can be unlocked
     public func parsePluginData(from pluginData: String, transactionTimestamp: Int) throws -> IPluginOutputData {
         let hodlerOutputData = try HodlerOutputData.parse(serialized: pluginData)
 
