@@ -32,10 +32,6 @@ For example, [this](https://blockstream.info/tx/bdc3e995100269c8813f291dd9ea5489
 
 This plugin can lock coins for `1 hour`, `1 month`, `half a year` and `1 year`. This is a limitation arising from the need of restoring those outputs using Simplified Payment Verification (SPV) `Bloom Filters`. Since each lock time generates different `P2SH` addresses, it wouldn't be possible to restore those outputs without knowing the exact lock time period in advance. So we generate 4 different addresses for each public key and use them in the bloom filters.
 
-### BTC amount
-
-We allow maximum 0.5 BTC to be locked. We assume that's an acceptable amount to be locked if done unintentionally.
-
 ## Prerequisites
 
 * Xcode 10.0+

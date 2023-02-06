@@ -6,11 +6,9 @@ public enum HodlerPluginError: Error {
     case unsupportedAddress
     case addressNotGiven
     case invalidData
-    case lockedValueLimitExceeded
 }
 
 public class HodlerPlugin {
-    public static let lockedValueLimit = 50_000_000 // 0.5 BTC
 
     public enum LockTimeInterval: UInt16, CaseIterable, Codable {
         case hour = 7           //  60 * 60 / 512
@@ -40,7 +38,7 @@ public class HodlerPlugin {
 
     public static let id: UInt8 = OpCode.push(1)[0]
     public var id: UInt8 { HodlerPlugin.id }
-    public var maxSpendLimit: Int? { HodlerPlugin.lockedValueLimit }
+    public var maxSpendLimit: Int? { nil }
 
     private let addressConverter: IHodlerAddressConverter
     private let blockMedianTimeHelper: IHodlerBlockMedianTimeHelper
@@ -103,10 +101,6 @@ extension HodlerPlugin: IPlugin {
         if !skipChecks {
             guard recipientAddress.scriptType == .p2pkh else {
                 throw HodlerPluginError.unsupportedAddress
-            }
-
-            guard mutableTransaction.recipientValue <= HodlerPlugin.lockedValueLimit else {
-                throw HodlerPluginError.lockedValueLimitExceeded
             }
         }
 
