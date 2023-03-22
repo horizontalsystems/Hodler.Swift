@@ -104,12 +104,12 @@ extension HodlerPlugin: IPlugin {
             }
         }
 
-        let redeemScript = csvRedeemScript(lockTimeInterval: hodlerData.lockTimeInterval, publicKeyHash: recipientAddress.keyHash)
+        let redeemScript = csvRedeemScript(lockTimeInterval: hodlerData.lockTimeInterval, publicKeyHash: recipientAddress.lockingScriptPayload)
         let scriptHash = Crypto.ripeMd160Sha256(redeemScript)
-        let newAddress = try addressConverter.convert(keyHash: scriptHash, type: .p2sh)
+        let newAddress = try addressConverter.convert(lockingScriptPayload: scriptHash, type: .p2sh)
 
         mutableTransaction.recipientAddress = newAddress
-        mutableTransaction.add(pluginData: OpCode.push(hodlerData.lockTimeInterval.valueInTwoBytes) + OpCode.push(recipientAddress.keyHash), pluginId: id)
+        mutableTransaction.add(pluginData: OpCode.push(hodlerData.lockTimeInterval.valueInTwoBytes) + OpCode.push(recipientAddress.lockingScriptPayload), pluginId: id)
     }
 
     // Detects a time-locked output by parsing a hint in the transaction's OP_RETURN data
@@ -123,17 +123,17 @@ extension HodlerPlugin: IPlugin {
         let redeemScript = csvRedeemScript(lockTimeInterval: lockTimeInterval, publicKeyHash: publicKeyHash)
         let redeemScriptHash = Crypto.ripeMd160Sha256(redeemScript)
 
-        guard let output = transaction.outputs.first(where: { $0.keyHash == redeemScriptHash }) else {
+        guard let output = transaction.outputs.first(where: { $0.lockingScriptPayload == redeemScriptHash }) else {
             return
         }
 
         output.pluginId = id
         output.pluginData = HodlerOutputData(
                 lockTimeInterval: lockTimeInterval,
-                addressString: (try addressConverter.convert(keyHash: publicKeyHash, type: .p2pkh).stringValue)
+                addressString: (try addressConverter.convert(lockingScriptPayload: publicKeyHash, type: .p2pkh).stringValue)
         ).toString()
 
-        if let publicKey = publicKeyStorage.publicKey(byRawOrKeyHash: publicKeyHash) {
+        if let publicKey = publicKeyStorage.publicKey(hashP2pkh: publicKeyHash) {
             output.redeemScript = redeemScript
             output.set(publicKey: publicKey)
         }
@@ -166,10 +166,10 @@ extension HodlerPlugin: IPlugin {
 
     public func keysForApiRestore(publicKey: PublicKey) throws -> [String] {
         try LockTimeInterval.allCases.map { lockTimeInterval in
-            let redeemScript = csvRedeemScript(lockTimeInterval: lockTimeInterval, publicKeyHash: publicKey.keyHash)
+            let redeemScript = csvRedeemScript(lockTimeInterval: lockTimeInterval, publicKeyHash: publicKey.hashP2pkh)
             let redeemScriptHash = Crypto.ripeMd160Sha256(redeemScript)
 
-            return try addressConverter.convert(keyHash: redeemScriptHash, type: .p2sh).stringValue
+            return try addressConverter.convert(lockingScriptPayload: redeemScriptHash, type: .p2sh).stringValue
         }
     }
 
