@@ -164,12 +164,12 @@ extension HodlerPlugin: IPlugin {
         return hodlerOutputData
     }
 
-    public func keysForApiRestore(publicKey: PublicKey) throws -> [String] {
-        try LockTimeInterval.allCases.map { lockTimeInterval in
+    public func keysForApiRestore(publicKey: PublicKey) -> [String] {
+        LockTimeInterval.allCases.compactMap { lockTimeInterval in
             let redeemScript = csvRedeemScript(lockTimeInterval: lockTimeInterval, publicKeyHash: publicKey.hashP2pkh)
             let redeemScriptHash = Crypto.ripeMd160Sha256(redeemScript)
 
-            return try addressConverter.convert(lockingScriptPayload: redeemScriptHash, type: .p2sh).stringValue
+            return try? addressConverter.convert(lockingScriptPayload: redeemScriptHash, type: .p2sh).stringValue
         }
     }
 
