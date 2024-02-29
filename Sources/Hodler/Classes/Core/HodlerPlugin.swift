@@ -1,5 +1,5 @@
-import Foundation
 import BitcoinCore
+import Foundation
 import HsCryptoKit
 
 public enum HodlerPluginError: Error {
@@ -9,30 +9,29 @@ public enum HodlerPluginError: Error {
 }
 
 public class HodlerPlugin {
-
     public enum LockTimeInterval: UInt16, CaseIterable, Codable {
-        case hour = 7           //  60 * 60 / 512
-        case month = 5063       //  30 * 24 * 60 * 60 / 512
-        case halfYear = 30881   // 183 * 24 * 60 * 60 / 512
-        case year = 61593       // 365 * 24 * 60 * 60 / 512
+        case hour = 7 //  60 * 60 / 512
+        case month = 5063 //  30 * 24 * 60 * 60 / 512
+        case halfYear = 30881 // 183 * 24 * 60 * 60 / 512
+        case year = 61593 // 365 * 24 * 60 * 60 / 512
 
         private static let sequenceTimeSecondsGranularity = 512
         private static let relativeLockTimeLockMask: UInt32 = 0x400000 // (1 << 22)
 
         var sequenceNumber: UInt32 {
-            LockTimeInterval.relativeLockTimeLockMask | UInt32(self.rawValue)
+            LockTimeInterval.relativeLockTimeLockMask | UInt32(rawValue)
         }
 
         public var valueInSeconds: Int {
-            Int(self.rawValue) * LockTimeInterval.sequenceTimeSecondsGranularity
+            Int(rawValue) * LockTimeInterval.sequenceTimeSecondsGranularity
         }
 
         var valueInTwoBytes: Data {
-            Data(from: self.rawValue)
+            Data(from: rawValue)
         }
 
         var valueInThreeBytes: Data {
-            Data(from: sequenceNumber).subdata(in: 0..<3)
+            Data(from: sequenceNumber).subdata(in: 0 ..< 3)
         }
     }
 
@@ -69,18 +68,15 @@ public class HodlerPlugin {
         // But this is quite enough in our case since we're setting relative time-locks for at least 1 month
         let previousOutputMedianTime = unspentOutput.transaction.timestamp
 
-        return previousOutputMedianTime + (try lockTimeIntervalFrom(output: unspentOutput.output)).valueInSeconds
+        return try previousOutputMedianTime + lockTimeIntervalFrom(output: unspentOutput.output).valueInSeconds
     }
 
     private func csvRedeemScript(lockTimeInterval: LockTimeInterval, publicKeyHash: Data) -> Data {
         OpCode.push(lockTimeInterval.valueInThreeBytes) + Data([OpCode.checkSequenceVerify, OpCode.drop]) + OpCode.p2pkhStart + OpCode.push(publicKeyHash) + OpCode.p2pkhFinish
     }
-
 }
 
-
 extension HodlerPlugin: IPlugin {
-
     public func validate(address: Address) throws {
         if address.scriptType != .p2pkh {
             throw HodlerPluginError.unsupportedAddress
@@ -116,7 +112,8 @@ extension HodlerPlugin: IPlugin {
     // and matching it with the user's public keys
     public func processTransactionWithNullData(transaction: FullTransaction, nullDataChunks: inout IndexingIterator<[Chunk]>) throws {
         guard let lockTimeIntervalData = nullDataChunks.next()?.data, let publicKeyHash = nullDataChunks.next()?.data,
-              let lockTimeInterval = lockTimeIntervalFrom(data: lockTimeIntervalData) else {
+              let lockTimeInterval = lockTimeIntervalFrom(data: lockTimeIntervalData)
+        else {
             throw HodlerPluginError.invalidData
         }
 
@@ -128,9 +125,9 @@ extension HodlerPlugin: IPlugin {
         }
 
         output.pluginId = id
-        output.pluginData = HodlerOutputData(
-                lockTimeInterval: lockTimeInterval,
-                addressString: (try addressConverter.convert(lockingScriptPayload: publicKeyHash, type: .p2pkh).stringValue)
+        output.pluginData = try HodlerOutputData(
+            lockTimeInterval: lockTimeInterval,
+            addressString: addressConverter.convert(lockingScriptPayload: publicKeyHash, type: .p2pkh).stringValue
         ).toString()
 
         if let publicKey = publicKeyStorage.publicKey(hashP2pkh: publicKeyHash) {
@@ -148,7 +145,7 @@ extension HodlerPlugin: IPlugin {
     }
 
     public func inputSequenceNumber(output: Output) throws -> Int {
-        Int((try lockTimeIntervalFrom(output: output)).sequenceNumber)
+        try Int(lockTimeIntervalFrom(output: output).sequenceNumber)
     }
 
     // Parses a pluginData string to an instance of HodlerOutputData
@@ -173,4 +170,11 @@ extension HodlerPlugin: IPlugin {
         }
     }
 
+    public func incrementSequence(sequence: Int) -> Int {
+        let maxInc = 0x7f800000
+        let currentInc = sequence & maxInc
+        let newInc = min(currentInc + (1 << 23), maxInc)
+        let zeroIncSequence = (0xffffffff - maxInc) & sequence
+        return zeroIncSequence | newInc
+    }
 }
