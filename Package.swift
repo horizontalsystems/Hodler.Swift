@@ -10,7 +10,8 @@ let package = Package(
     products: [
         .library(
             name: "Hodler",
-            targets: ["Hodler"]),
+            targets: ["Hodler"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/horizontalsystems/BitcoinCore.Swift.git", .upToNextMajor(from: "3.0.0")),
