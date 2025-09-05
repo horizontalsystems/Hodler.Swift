@@ -1,5 +1,5 @@
-import Foundation
 import BitcoinCore
+import Foundation
 
 public protocol IHodlerAddressConverter {
     func convert(lockingScriptPayload: Data, type: ScriptType) throws -> Address

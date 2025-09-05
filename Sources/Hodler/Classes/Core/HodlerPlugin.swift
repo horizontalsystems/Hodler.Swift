@@ -171,10 +171,10 @@ extension HodlerPlugin: IPlugin {
     }
 
     public func incrementSequence(sequence: Int) -> Int {
-        let maxInc = 0x7f800000
+        let maxInc = 0x7F80_0000
         let currentInc = sequence & maxInc
         let newInc = min(currentInc + (1 << 23), maxInc)
-        let zeroIncSequence = (0xffffffff - maxInc) & sequence
+        let zeroIncSequence = (0xFFFF_FFFF - maxInc) & sequence
         return zeroIncSequence | newInc
     }
 }
